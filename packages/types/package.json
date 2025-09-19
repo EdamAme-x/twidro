@@ -1,0 +1,11 @@
+{
+    "name": "@twidro/types",
+    "type": "module",
+    "private": true,
+    "exports": {
+        ".": "./index.ts"
+    },
+    "dependencies": {
+        "@twidro/consts": "workspace:*"
+    }
+}

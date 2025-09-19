@@ -1,0 +1,14 @@
+{
+  "name": "twidro",
+  "type": "module",
+  "private": true,
+  "devDependencies": {
+    "@types/bun": "latest",
+    "typescript": "^5"
+  },
+  "workspaces": ["apps/*", "packages/*"],
+  "dependencies": {
+    "@twidro/types": "workspace:*",
+    "@twidro/consts": "workspace:*"
+  }
+}
