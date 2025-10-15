@@ -1,7 +1,8 @@
 import { BaseService } from "../base.ts";
 import type { Video } from "@twidro/types";
 import { JSDOM } from "jsdom";
-import { POPULARITY, SITES } from "@twidro/consts";
+import { POPULARITY, SITES, type RANKING_KEY } from "@twidro/consts";
+import { RANKING_1D_KEY, RANKING_3D_KEY } from "@twidro/consts";
 
 const fetchVideos = async (
   count: number,
@@ -84,10 +85,10 @@ export class TwivideoService extends BaseService<SITES.TWIVIDEO> {
     return parseVideoData(data);
   }
 
-  async getTrending(range: "1day" | "3d" | "1w"): Promise<Video<SITES.TWIVIDEO>[]> {
+  async getTrending(range: RANKING_KEY): Promise<Video<SITES.TWIVIDEO>[]> {
     const data = await fetchVideos(500, {
       type: "ranking",
-      order: range === "1day" ? "24" : range === "3d" ? "72" : "168",
+      order: range === RANKING_1D_KEY ? "24" : range === RANKING_3D_KEY ? "72" : "168",
       ty: "p6",
     });
     return parseVideoData(data);

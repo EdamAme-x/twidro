@@ -1,7 +1,8 @@
 import { BaseService } from "../base.ts";
 import type { Video } from "@twidro/types";
 import { JSDOM } from "jsdom";
-import { POPULARITY, SITES } from "@twidro/consts";
+import { POPULARITY, RANKING_KEY, SITES } from "@twidro/consts";
+import { RANKING_1D_KEY, RANKING_3D_KEY, RANKING_1W_KEY } from "@twidro/consts";
 
 const fetchRealtimeVideos = async (page: number) => {
   let source: string = "";
@@ -45,11 +46,11 @@ const fetchRealtimeVideos = async (page: number) => {
   return Array.from(doc.querySelectorAll("#container > div.item"));
 };
 
-const fetchTrendingVideos = async (range: "1day" | "3d" | "1w") => {
+const fetchTrendingVideos = async (range: RANKING_KEY) => {
   const endpoint = {
-    "1day": "ranking_t1.php",
-    "3d": "ranking_tweek.php",
-    "1w": "ranking_tmonth.php",
+    [RANKING_1D_KEY]: "ranking_t1.php",
+    [RANKING_3D_KEY]: "ranking_tweek.php",
+    [RANKING_1W_KEY]: "ranking_tmonth.php",
   };
   const res = await fetch("https://www.twidouga.net/jp/" + endpoint[range], {
     "headers": {
@@ -140,7 +141,7 @@ export class TwidougaService extends BaseService<SITES.TWIDOUGA> {
     return parseRealtimeVideoData(data);
   }
 
-  async getTrending(range: "1day" | "3d" | "1w"): Promise<Video<SITES.TWIDOUGA>[]> {
+  async getTrending(range: RANKING_KEY): Promise<Video<SITES.TWIDOUGA>[]> {
     const data = await fetchTrendingVideos(range);
     return parseTrendingVideoData(data);
   }
