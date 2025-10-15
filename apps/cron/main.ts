@@ -1,6 +1,9 @@
 import c from "chalk";
 import {
   POPULARITY,
+  RANKING_1D_KEY,
+  RANKING_1W_KEY,
+  RANKING_3D_KEY,
   RANKING_KEY,
   RANKING_KEYS,
   REALTIME_KEY,
@@ -13,29 +16,69 @@ import { TwiigleService } from "./services/twiigle/index.ts";
 import { Video } from "@twidro/types";
 import { deleteByPrefix } from "./utils/kv.ts";
 import { Hono } from "hono";
+import { Cache } from "./utils/cache.ts";
 
 // 注意: 前提として、データは持続性のある物では無いのでグローバルに置くことにする
 const kv = await Deno.openKv();
 const app = new Hono();
 
 app.get("/health", (c) => c.text("OK"));
+
+const realtimeCache = new Cache<Video<SITES>[]>([]);
+const rankingCaches = {
+  [RANKING_1D_KEY]: new Cache<Video<SITES>[]>([]),
+  [RANKING_3D_KEY]: new Cache<Video<SITES>[]>([]),
+  [RANKING_1W_KEY]: new Cache<Video<SITES>[]>([]),
+} satisfies Record<RANKING_KEY, Cache<Video<SITES>[]>>;
+
 app.get("/realtime", async (c) => {
   const realtimeVideos = [];
-  for await (const entry of kv.list({ prefix: [REALTIME_KEY] })) {
+
+  let isFirst = true;
+  let versionStamp: string | null = null;
+
+  for await (const entry of kv.list<Video<SITES>>({ prefix: [REALTIME_KEY] })) {
+    if (isFirst) {
+      versionStamp = entry.versionstamp;
+      if (!realtimeCache.checkUpdated(versionStamp)) {
+        return c.json(realtimeCache.get());
+      }
+      isFirst = false;
+    }
     realtimeVideos.push(entry.value);
   }
-  return c.json(realtimeVideos);
+
+  if (versionStamp) {
+    realtimeCache.update(versionStamp, realtimeVideos);
+  }
+
+  return c.json(realtimeCache.get());
 });
 app.get("/ranking/:key", async (c) => {
-  const key = c.req.param("key");
-  if (!RANKING_KEYS.includes(key as RANKING_KEY)) {
+  const key = c.req.param("key") as RANKING_KEY;
+  if (!RANKING_KEYS.includes(key)) {
     return c.json({ error: "Invalid ranking key" }, 400);
   }
   const rankingVideos = [];
-  for await (const entry of kv.list({ prefix: [key] })) {
+  let isFirst = true;
+  let versionStamp: string | null = null;
+
+  for await (const entry of kv.list<Video<SITES>>({ prefix: [key] })) {
+    if (isFirst) {
+      versionStamp = entry.versionstamp;
+      if (!rankingCaches[key].checkUpdated(versionStamp)) {
+        return c.json(rankingCaches[key].get());
+      }
+      isFirst = false;
+    }
     rankingVideos.push(entry.value);
   }
-  return c.json(rankingVideos);
+
+  if (versionStamp) {
+    rankingCaches[key].update(versionStamp, rankingVideos);
+  }
+
+  return c.json(rankingCaches[key].get());
 });
 app.onError((err, c) => {
   console.error(c.req.url, err);
